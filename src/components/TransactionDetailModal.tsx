@@ -15,35 +15,35 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ isOpen,
   if (!isOpen || !transaction) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto border dark:border-gray-800">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Detail Transaksi</h2>
-          <Button variant="outline" size="sm" onClick={onClose}>
+          <h2 className="text-2xl font-bold dark:text-white">Detail Transaksi</h2>
+          <Button variant="outline" size="sm" onClick={onClose} className="dark:border-gray-700 dark:hover:bg-gray-800">
             <X className="h-4 w-4" />
           </Button>
         </div>
 
         <div className="space-y-6">
           {/* Transaction Info */}
-          <Card>
+          <Card className="dark:bg-gray-800 dark:border-gray-700">
             <CardHeader>
-              <CardTitle className="flex items-center text-lg">
-                <DollarSign className="mr-2 h-5 w-5" />
+              <CardTitle className="flex items-center text-lg dark:text-white">
+                <DollarSign className="mr-2 h-5 w-5 text-blue-600 dark:text-blue-400" />
                 Informasi Transaksi
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-600">ID Transaksi</label>
-                  <p className="text-lg font-semibold text-blue-600">{transaction.id}</p>
+                  <label className="text-sm font-medium text-gray-600 dark:text-gray-400">ID Transaksi</label>
+                  <p className="text-lg font-semibold text-blue-600 dark:text-blue-400">{transaction.id}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Tanggal</label>
+                  <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Tanggal</label>
                   <div className="flex items-center">
                     <Calendar className="mr-2 h-4 w-4 text-gray-400" />
-                    <p className="text-lg">{new Date(transaction.date).toLocaleDateString('id-ID', {
+                    <p className="text-lg dark:text-white">{new Date(transaction.date).toLocaleDateString('id-ID', {
                       weekday: 'long',
                       year: 'numeric',
                       month: 'long',
@@ -55,19 +55,18 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ isOpen,
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Pelanggan/Supplier</label>
+                  <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Pelanggan/Supplier</label>
                   <div className="flex items-center">
                     <User className="mr-2 h-4 w-4 text-gray-400" />
-                    <p className="text-lg">{transaction.customer}</p>
+                    <p className="text-lg dark:text-white">{transaction.customer}</p>
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Tipe Transaksi</label>
-                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                    transaction.type === 'Penjualan' 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-purple-100 text-purple-800'
-                  }`}>
+                  <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Tipe Transaksi</label>
+                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${transaction.type === 'Penjualan'
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                      : 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
+                    }`}>
                     {transaction.type}
                   </span>
                 </div>
@@ -75,36 +74,35 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ isOpen,
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Total Transaksi</label>
-                  <p className="text-2xl font-bold text-green-600">
+                  <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Transaksi</label>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                     Rp {transaction.amount.toLocaleString('id-ID')}
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Status Pembayaran</label>
-                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                    transaction.status === 'Lunas' 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-red-100 text-red-800'
-                  }`}>
+                  <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Status Pembayaran</label>
+                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${transaction.status === 'Lunas'
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                      : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                    }`}>
                     {transaction.status}
                   </span>
                 </div>
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-600">Deskripsi</label>
-                <p className="text-gray-800 bg-gray-50 p-3 rounded-lg">{transaction.description}</p>
+                <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Deskripsi</label>
+                <p className="text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">{transaction.description}</p>
               </div>
             </CardContent>
           </Card>
 
           {/* Items Detail */}
           {transaction.items && transaction.items.length > 0 && (
-            <Card>
+            <Card className="dark:bg-gray-800 dark:border-gray-700">
               <CardHeader>
-                <CardTitle className="flex items-center text-lg">
-                  <Package className="mr-2 h-5 w-5" />
+                <CardTitle className="flex items-center text-lg dark:text-white">
+                  <Package className="mr-2 h-5 w-5 text-blue-600 dark:text-blue-400" />
                   Detail Barang/Jasa
                 </CardTitle>
               </CardHeader>
@@ -112,32 +110,32 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ isOpen,
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2 font-medium text-gray-600">Produk</th>
-                        <th className="text-center py-2 font-medium text-gray-600">Qty</th>
-                        <th className="text-right py-2 font-medium text-gray-600">Harga Satuan</th>
-                        <th className="text-right py-2 font-medium text-gray-600">Subtotal</th>
+                      <tr className="border-b dark:border-gray-600">
+                        <th className="text-left py-2 font-medium text-gray-600 dark:text-gray-400">Produk</th>
+                        <th className="text-center py-2 font-medium text-gray-600 dark:text-gray-400">Qty</th>
+                        <th className="text-right py-2 font-medium text-gray-600 dark:text-gray-400">Harga Satuan</th>
+                        <th className="text-right py-2 font-medium text-gray-600 dark:text-gray-400">Subtotal</th>
                       </tr>
                     </thead>
                     <tbody>
                       {transaction.items.map((item, index) => (
-                        <tr key={index} className="border-b">
+                        <tr key={index} className="border-b dark:border-gray-600">
                           <td className="py-3">
-                            <p className="font-medium">{item.productName}</p>
-                            <p className="text-sm text-gray-600">ID: {item.productId}</p>
+                            <p className="font-medium dark:text-white">{item.productName}</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">ID: {item.productId}</p>
                           </td>
-                          <td className="text-center py-3 font-medium">{item.quantity}</td>
-                          <td className="text-right py-3">Rp {item.price.toLocaleString('id-ID')}</td>
-                          <td className="text-right py-3 font-semibold">
+                          <td className="text-center py-3 font-medium dark:text-white">{item.quantity}</td>
+                          <td className="text-right py-3 dark:text-gray-300">Rp {item.price.toLocaleString('id-ID')}</td>
+                          <td className="text-right py-3 font-semibold dark:text-white">
                             Rp {(item.price * item.quantity).toLocaleString('id-ID')}
                           </td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
-                      <tr className="border-t-2 border-gray-300">
-                        <td colSpan={3} className="py-3 text-right font-semibold">Total:</td>
-                        <td className="py-3 text-right text-xl font-bold text-green-600">
+                      <tr className="border-t-2 border-gray-300 dark:border-gray-600">
+                        <td colSpan={3} className="py-3 text-right font-semibold dark:text-white">Total:</td>
+                        <td className="py-3 text-right text-xl font-bold text-green-600 dark:text-green-400">
                           Rp {transaction.amount.toLocaleString('id-ID')}
                         </td>
                       </tr>

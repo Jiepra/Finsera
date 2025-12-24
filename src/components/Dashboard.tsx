@@ -70,32 +70,32 @@ const Dashboard: React.FC = () => {
       value: `Rp ${todayRevenue.toLocaleString('id-ID')}`,
       change: `${todayTransactions.filter(t => t.type === 'Penjualan').length} transaksi`,
       icon: ArrowUpCircle,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100',
+      color: 'text-green-600 dark:text-green-400',
+      bgColor: 'bg-green-100 dark:bg-green-900/30',
     },
     {
       title: 'PENGELUARAN Hari Ini',
       value: `Rp ${(todayPurchaseAmount + todayExpenseAmount).toLocaleString('id-ID')}`,
       change: `${todayPurchases.length + todayExpenses.length} transaksi`,
       icon: ArrowDownCircle,
-      color: 'text-red-600',
-      bgColor: 'bg-red-100',
+      color: 'text-red-600 dark:text-red-400',
+      bgColor: 'bg-red-100 dark:bg-red-900/30',
     },
     {
       title: 'Total Produk',
       value: products.length.toString(),
       change: lowStockProducts.length > 0 ? `${lowStockProducts.length} stok rendah` : 'Stok aman',
       icon: Package,
-      color: lowStockProducts.length > 0 ? 'text-orange-600' : 'text-green-600',
-      bgColor: lowStockProducts.length > 0 ? 'bg-orange-100' : 'bg-green-100',
+      color: lowStockProducts.length > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400',
+      bgColor: lowStockProducts.length > 0 ? 'bg-orange-100 dark:bg-orange-900/30' : 'bg-green-100 dark:bg-green-900/30',
     },
     {
       title: 'Laba Bersih',
       value: `Rp ${(summary.netIncome || 0).toLocaleString('id-ID')}`,
       change: summary.netIncome >= 0 ? 'Profit' : 'Loss',
       icon: DollarSign,
-      color: summary.netIncome >= 0 ? 'text-blue-600' : 'text-red-600',
-      bgColor: summary.netIncome >= 0 ? 'bg-blue-100' : 'bg-red-100',
+      color: summary.netIncome >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400',
+      bgColor: summary.netIncome >= 0 ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-red-100 dark:bg-red-900/30',
     },
   ];
 
@@ -112,18 +112,22 @@ const Dashboard: React.FC = () => {
   const chartData = last7Days.map(date => {
     const revenue = transactions.filter(t => t.type === 'Penjualan' && t.date === date).reduce((s, t) => s + t.amount, 0);
     const expense = purchases.filter(p => p.date === date).reduce((s, p) => s + p.amount, 0) +
-                    expenses.filter(e => e.date === date).reduce((s, e) => s + e.amount, 0);
+      expenses.filter(e => e.date === date).reduce((s, e) => s + e.amount, 0);
     return { date, revenue, expense };
   });
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen space-y-6">
+    <div className="p-6 bg-gray-50 dark:bg-gray-950 min-h-screen space-y-6 transition-colors duration-300">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">{new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">{new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
         </div>
-        <Button onClick={handleLogout} variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200">
+        <Button
+          onClick={handleLogout}
+          variant="outline"
+          className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 dark:border-red-800"
+        >
           <LogOut className="mr-2 h-4 w-4" /> Logout
         </Button>
       </div>
@@ -132,11 +136,11 @@ const Dashboard: React.FC = () => {
         {stats.map((stat, i) => {
           const Icon = stat.icon;
           return (
-            <Card key={i} className="hover:shadow-lg transition-all">
+            <Card key={i} className="hover:shadow-lg transition-all dark:bg-gray-900 dark:border-gray-800">
               <CardContent className="p-4 flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500 font-medium">{stat.title}</p>
-                  <p className="text-xl font-bold text-gray-900">{stat.value}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{stat.title}</p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
                   <p className={`text-sm ${stat.color}`}>{stat.change}</p>
                 </div>
                 <div className={`p-2 rounded-full ${stat.bgColor}`}><Icon className={`w-6 h-6 ${stat.color}`} /></div>
@@ -146,73 +150,81 @@ const Dashboard: React.FC = () => {
         })}
       </div>
 
-      <Card>
+      <Card className="dark:bg-gray-900 dark:border-gray-800">
         <CardHeader>
-          <CardTitle className="text-lg">📊 Grafik Penjualan & Pengeluaran (7 Hari Terakhir)</CardTitle>
+          <CardTitle className="text-lg dark:text-white">📊 Grafik Penjualan & Pengeluaran (7 Hari Terakhir)</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={chartData}>
-              <XAxis dataKey="date" />
-              <YAxis tickFormatter={v => `Rp ${v.toLocaleString('id-ID')}`} />
-              <ChartTooltip formatter={v => `Rp ${v.toLocaleString('id-ID')}`} />
-              <Line type="monotone" dataKey="revenue" stroke="#16a34a" name="Penjualan" />
-              <Line type="monotone" dataKey="expense" stroke="#dc2626" name="Pengeluaran" />
+              <XAxis dataKey="date" stroke="#6b7280" fontSize={12} />
+              <YAxis tickFormatter={v => `Rp ${v.toLocaleString('id-ID')}`} stroke="#6b7280" fontSize={12} />
+              <ChartTooltip
+                formatter={v => `Rp ${v.toLocaleString('id-ID')}`}
+                contentStyle={{
+                  backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: '#fff'
+                }}
+              />
+              <Line type="monotone" dataKey="revenue" stroke="#22c55e" strokeWidth={2} name="Penjualan" dot={{ fill: '#22c55e' }} />
+              <Line type="monotone" dataKey="expense" stroke="#ef4444" strokeWidth={2} name="Pengeluaran" dot={{ fill: '#ef4444' }} />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader><CardTitle>📑 Transaksi Terbaru</CardTitle></CardHeader>
+        <Card className="dark:bg-gray-900 dark:border-gray-800">
+          <CardHeader><CardTitle className="dark:text-white">📑 Transaksi Terbaru</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {recentTransactions.length === 0 ? (
-              <p className="text-gray-500 text-sm">Belum ada transaksi.</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">Belum ada transaksi.</p>
             ) : recentTransactions.map(t => (
-              <div key={t.id} className="flex justify-between border-b pb-2">
+              <div key={t.id} className="flex justify-between border-b border-gray-200 dark:border-gray-700 pb-2">
                 <div>
-                  <p className="font-medium text-gray-700">{t.customer} - {t.type}</p>
-                  <p className="text-xs text-gray-500">{t.date} • {t.id}</p>
+                  <p className="font-medium text-gray-700 dark:text-gray-200">{t.customer} - {t.type}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t.date} • {t.id}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-gray-800">Rp {t.amount.toLocaleString('id-ID')}</p>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${t.status === 'Lunas' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{t.status}</span>
+                  <p className="font-semibold text-gray-800 dark:text-white">Rp {t.amount.toLocaleString('id-ID')}</p>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${t.status === 'Lunas' ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-400'}`}>{t.status}</span>
                 </div>
               </div>
             ))}
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader><CardTitle>📘 Ringkasan Keuangan</CardTitle></CardHeader>
+        <Card className="dark:bg-gray-900 dark:border-gray-800">
+          <CardHeader><CardTitle className="dark:text-white">📘 Ringkasan Keuangan</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            <div className="flex justify-between p-3 bg-green-50 rounded-lg">
-                <span className="text-green-700 font-medium">Penjualan</span>
-                <span className="text-green-600 font-bold">Rp {(summary.totalRevenue || 0).toLocaleString('id-ID')}</span>
+            <div className="flex justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+              <span className="text-green-700 dark:text-green-400 font-medium">Penjualan</span>
+              <span className="text-green-600 dark:text-green-400 font-bold">Rp {(summary.totalRevenue || 0).toLocaleString('id-ID')}</span>
             </div>
-            <div className="flex justify-between p-3 bg-red-50 rounded-lg">
-                <span className="text-red-700 font-medium">Pembelian</span>
-                <span className="text-red-600 font-bold">Rp {(summary.totalPurchases || 0).toLocaleString('id-ID')}</span>
+            <div className="flex justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+              <span className="text-red-700 dark:text-red-400 font-medium">Pembelian</span>
+              <span className="text-red-600 dark:text-red-400 font-bold">Rp {(summary.totalPurchases || 0).toLocaleString('id-ID')}</span>
             </div>
-            <div className="flex justify-between p-3 bg-red-50 rounded-lg">
-                <span className="text-red-700 font-medium">Beban</span>
-                <span className="text-red-600 font-bold">Rp {(summary.totalExpenses || 0).toLocaleString('id-ID')}</span>
+            <div className="flex justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+              <span className="text-red-700 dark:text-red-400 font-medium">Beban</span>
+              <span className="text-red-600 dark:text-red-400 font-bold">Rp {(summary.totalExpenses || 0).toLocaleString('id-ID')}</span>
             </div>
-            <div className="flex justify-between p-3 bg-blue-50 rounded-lg">
-                <span className="text-blue-700 font-medium">Laba Kotor</span>
-                <span className="text-blue-600 font-bold">Rp {(summary.grossProfit || 0).toLocaleString('id-ID')}</span>
+            <div className="flex justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <span className="text-blue-700 dark:text-blue-400 font-medium">Laba Kotor</span>
+              <span className="text-blue-600 dark:text-blue-400 font-bold">Rp {(summary.grossProfit || 0).toLocaleString('id-ID')}</span>
             </div>
-            <div className="flex justify-between p-3 bg-purple-50 rounded-lg border border-purple-200">
-                <span className="text-purple-700 font-semibold">Laba Bersih</span>
-                <span className="text-purple-600 font-bold text-lg">Rp {(summary.netIncome || 0).toLocaleString('id-ID')}</span>
+            <div className="flex justify-between p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+              <span className="text-purple-700 dark:text-purple-400 font-semibold">Laba Bersih</span>
+              <span className="text-purple-600 dark:text-purple-400 font-bold text-lg">Rp {(summary.netIncome || 0).toLocaleString('id-ID')}</span>
             </div>
             {summary.netIncome > 0 && summary.totalRevenue > 0 && (
-              <div className="mt-4 p-3 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
-                <p className="text-sm text-green-700 font-medium text-center">
+              <div className="mt-4 p-3 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                <p className="text-sm text-green-700 dark:text-green-400 font-medium text-center">
                   <strong>Margin Laba:</strong> {((summary.netIncome / summary.totalRevenue) * 100).toFixed(1)}% - {
                     (summary.netIncome / summary.totalRevenue) * 100 > 15 ? 'Sangat Baik!' :
-                    (summary.netIncome / summary.totalRevenue) * 100 > 10 ? 'Baik' : 'Perlu Perbaikan'
+                      (summary.netIncome / summary.totalRevenue) * 100 > 10 ? 'Baik' : 'Perlu Perbaikan'
                   }
                 </p>
               </div>

@@ -10,6 +10,7 @@ declare const __firebase_config: string;
 declare const __initial_auth_token: string | undefined;
 
 // Konfigurasi Firebase dari environment variables
+// Note: Firebase API keys are intentionally exposed in client apps but protected by Firebase security rules
 const defaultFirebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -17,7 +18,7 @@ const defaultFirebaseConfig = {
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: "G-6H2FCXX30J" // Opsional
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-6H2FCXX30J" // Opsional
 };
 
 // Default value for appId when running locally outside of Canvas environment
@@ -35,8 +36,13 @@ try {
   firebaseConfig = defaultFirebaseConfig;
 }
 
-// Tambahkan logging di sini:
-console.log("Firebase config being used:", firebaseConfig); // LOG INI SANGAT PENTING
+// Hanya tambahkan logging di development, bukan production
+if (import.meta.env.DEV) {
+  console.log("Firebase config being used:", {
+    ...firebaseConfig,
+    apiKey: firebaseConfig.apiKey ? "[HIDDEN]" : undefined // Jangan tampilkan API key di log
+  });
+}
 
 // Inisialisasi Firebase App
 const app = initializeApp(firebaseConfig);

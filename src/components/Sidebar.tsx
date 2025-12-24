@@ -9,6 +9,7 @@ import {
   FileText,
   ArrowDownCircle
 } from 'lucide-react';
+import { ThemeToggle } from './theme-toggle';
 
 interface SidebarProps {
   activeTab: string;
@@ -28,12 +29,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
 
   return (
     <>
-      <div className="w-64 bg-white shadow-lg h-full flex flex-col md:flex hidden">
-        <div className="p-6 border-b border-gray-200 flex items-center">
+      <div className="w-64 bg-white dark:bg-gray-900 shadow-lg h-full flex flex-col md:flex hidden">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center">
           <img src="/Finsera.svg" alt="Finsera Logo" className="h-8 w-auto mr-2" />
           <div>
-            <h2 className="text-xl font-bold text-gray-800">Finsera</h2>
-            <p className="text-sm text-gray-600 mt-1">Kelompok 3</p>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Finsera</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Version 1.1</p>
           </div>
         </div>
 
@@ -45,15 +46,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
                 <li key={item.id}>
                   <button
                     onClick={() => setActiveTab(item.id)}
-                    className={`w-full flex items-center px-4 py-3 text-left rounded-lg transition-all duration-200 hover:bg-gray-50 ${
-                      activeTab === item.id
-                        ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700 font-medium'
-                        : 'text-gray-700 hover:text-gray-900'
-                    }`}
+                    className={`w-full flex items-center px-4 py-3 text-left rounded-lg transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-800 ${activeTab === item.id
+                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-r-2 border-blue-700 dark:border-blue-400 font-medium'
+                        : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
+                      }`}
                   >
-                    <Icon className={`mr-3 h-5 w-5 ${
-                      activeTab === item.id ? 'text-blue-700' : 'text-gray-500'
-                    }`} />
+                    <Icon className={`mr-3 h-5 w-5 ${activeTab === item.id ? 'text-blue-700 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'
+                      }`} />
                     {item.label}
                   </button>
                 </li>
@@ -62,10 +61,14 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
           </ul>
         </nav>
 
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm text-gray-600 dark:text-gray-400">Tema</span>
+            <ThemeToggle />
+          </div>
           <div className="text-center">
-            <p className="text-xs text-gray-500">© 2024 Sistem Akuntansi</p>
-            <p className="text-xs text-gray-400">Indonesia v1.0</p>
+            <p className="text-xs text-gray-500 dark:text-gray-500">© 2025 Finsera</p>
+            <p className="text-xs text-gray-400 dark:text-gray-600">Version 1.1</p>
           </div>
         </div>
       </div>

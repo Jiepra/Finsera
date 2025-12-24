@@ -1,5 +1,4 @@
 import { Product, Transaction, Purchase, Expense } from '../contexts/AppContext';
-import { getAIConfig, getAIUrl } from './aiConfig';
 
 interface AIResponse {
   text: string;
@@ -13,254 +12,222 @@ export interface FinancialData {
 }
 
 class AIService {
-  private config = getAIConfig();
-  private apiUrl: string;
+  private baseUrl: string = 'https://generativelanguage.googleapis.com/v1beta/models';
+  // Multiple models to try - fallback if one is overloaded
+  private models: string[] = [
+    'gemini-2.5-flash',        // Primary - latest and best
+    'gemini-1.5-flash-latest', // Fallback 1 - stable
+    'gemini-pro'               // Fallback 2 - most reliable
+  ];
+  private currentModelIndex: number = 0;
+  private timeout: number = 30000; // 30 seconds
 
-  constructor() {
-    this.apiUrl = getAIUrl();
+  private getApiKey(): string | null {
+    const apiKey = import.meta.env.VITE_GOOGLE_AI_API_KEY;
+    if (apiKey && apiKey !== 'your_google_ai_api_key_here') {
+      return apiKey;
+    }
+    return null;
   }
 
   /**
-   * Mengirim permintaan ke Google AI API
+   * Try calling AI with a specific model
+   */
+  private async tryModel(prompt: string, modelName: string, apiKey: string): Promise<AIResponse | null> {
+    try {
+      const url = `${this.baseUrl}/${modelName}:generateContent?key=${apiKey}`;
+
+      const requestBody = {
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.8,
+          maxOutputTokens: 2048,
+          topP: 0.95,
+          topK: 40,
+        },
+        safetySettings: [
+          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_ONLY_HIGH" },
+          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_ONLY_HIGH" },
+          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_ONLY_HIGH" },
+          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_ONLY_HIGH" }
+        ]
+      };
+
+      console.log(`[AI] Mencoba model: ${modelName}...`);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorJson = await response.json().catch(() => ({}));
+        const errorText = errorJson.error?.message || `HTTP ${response.status}`;
+
+        console.warn(`[AI] Model ${modelName} error: ${errorText}`);
+
+        // Return null to try next model
+        if (response.status === 503 || response.status === 429 || response.status === 404) {
+          return null;
+        }
+
+        if (response.status === 403) {
+          return { text: '⚠️ API Key tidak valid atau kuota habis.\n\nSilakan periksa API key Anda di Google AI Studio.' };
+        }
+
+        return null;
+      }
+
+      const data = await response.json();
+
+      if (data.candidates && data.candidates.length > 0) {
+        const text = data.candidates[0].content?.parts?.[0]?.text;
+        if (text) {
+          console.log(`[AI] ✓ Berhasil dengan model: ${modelName}`);
+          return { text };
+        }
+      }
+
+      if (data.promptFeedback?.blockReason) {
+        return { text: `Maaf, permintaan tidak dapat diproses: ${data.promptFeedback.blockReason}` };
+      }
+
+      return null;
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.warn(`[AI] Model ${modelName} timeout`);
+      } else {
+        console.warn(`[AI] Model ${modelName} error:`, error.message);
+      }
+      return null;
+    }
+  }
+
+  /**
+   * Mengirim permintaan ke AI dengan fallback models
    */
   private async callAI(prompt: string): Promise<AIResponse> {
-    // Validasi API key sebelum melakukan permintaan
-    if (!this.config.apiKey) {
-      console.error('Google AI API key is not configured. Please set VITE_GOOGLE_AI_API_KEY in your .env file.');
+    const apiKey = this.getApiKey();
+
+    if (!apiKey) {
       return {
-        text: 'Maaf, fitur AI belum diaktifkan karena API key tidak tersedia. Harap hubungi administrator atau pastikan konfigurasi API sudah benar.'
+        text: '⚠️ **API Key belum dikonfigurasi**\n\nTambahkan `VITE_GOOGLE_AI_API_KEY` di file `.env` Anda.\n\nDapatkan API key gratis di: [Google AI Studio](https://aistudio.google.com/)'
       };
     }
 
-    let lastError: Error | null = null;
+    // Try each model until one works
+    for (let i = 0; i < this.models.length; i++) {
+      const modelName = this.models[i];
+      const result = await this.tryModel(prompt, modelName, apiKey);
 
-    // Retry logic
-    for (let attempt = 0; attempt < this.config.maxRetries; attempt++) {
-      try {
-        const requestBody = {
-          contents: [{
-            parts: [{
-              text: prompt
-            }]
-          }]
-        };
+      if (result) {
+        return result;
+      }
 
-        console.log(`Mengirim permintaan ke AI API (attempt ${attempt + 1}):`, requestBody); // Log untuk debugging
-
-        // Gunakan URL yang sudah dibuat dengan API key di dalamnya
-        const apiUrlWithKey = getAIUrl();
-
-        // Tambahkan delay awal untuk mencegah permintaan yang terlalu cepat
-        if (attempt > 0) { // Hanya pada retry, bukan pada attempt pertama
-          const initialDelay = Math.floor(Math.random() * 1000) + 500; // 500-1500ms
-          await new Promise(resolve => setTimeout(resolve, initialDelay));
-        }
-
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
-
-        const response = await fetch(apiUrlWithKey, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestBody),
-          signal: controller.signal
-        });
-
-        clearTimeout(timeoutId);
-
-        console.log('Status respons:', response.status); // Log status respons
-
-        if (!response.ok) {
-          // Coba baca body error sebagai JSON jika memungkinkan, jika tidak ambil sebagai text
-          let errorText = '';
-          try {
-            const errorJson = await response.json();
-            errorText = JSON.stringify(errorJson);
-          } catch (e) {
-            errorText = await response.text();
-          }
-
-          console.error('Error dari API:', errorText);
-          // Tambahkan delay sebelum mencoba kembali untuk kasus error
-          if (response.status === 503 || response.status >= 500) {
-            // Server sedang sibuk, beri delay tambahan
-            await new Promise(resolve => setTimeout(resolve, 2000));
-          }
-          throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-        }
-
-        const data = await response.json();
-        console.log('Respons dari AI API:', data); // Log respons lengkap
-
-        if (data.candidates && data.candidates.length > 0) {
-          const text = data.candidates[0].content.parts[0].text;
-          return { text };
-        } else {
-          // Cek apakah ada error dalam respons
-          if (data.promptFeedback?.blockReason) {
-            throw new Error(`Permintaan diblokir: ${data.promptFeedback.blockReason}`);
-          }
-          throw new Error('Tidak ada respons dari AI');
-        }
-      } catch (error: any) {
-        console.error(`Error calling AI API (attempt ${attempt + 1}):`, error);
-        lastError = error;
-
-        // Jika ini bukan attempt terakhir, tunggu sebentar sebelum mencoba lagi
-        if (attempt < this.config.maxRetries - 1) {
-          // Gunakan delay yang lebih konservatif dan tambahan randomisasi untuk menghindari throttling
-          const baseDelay = Math.pow(2, attempt) * 1000;
-          const randomDelay = Math.floor(Math.random() * 1000); // Tambahkan delay acak
-          const delay = baseDelay + randomDelay;
-          console.log(`Mencoba kembali dalam ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
+      // Small delay before trying next model
+      if (i < this.models.length - 1) {
+        console.log(`[AI] Mencoba model alternatif...`);
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
 
-    // Jika semua percobaan gagal, lempar error terakhir
-    if (lastError) {
-      console.error('Semua percobaan gagal. Error terakhir:', lastError);
-      if (lastError instanceof Error) {
-        // Jika error adalah "The model is overloaded", berikan pesan yang lebih ramah
-        if (lastError.message.includes('The model is overloaded')) {
-          return {
-            text: 'Maaf, saat ini asisten AI sedang sibuk. Silakan coba beberapa saat lagi. Anda tetap dapat menggunakan fitur lain dari aplikasi.'
-          };
-        }
-        return { text: `Maaf, terjadi kesalahan saat memproses permintaan. Silakan coba lagi nanti.` };
-      }
-    }
-
-    return { text: 'Maaf, terjadi kesalahan saat memproses permintaan. Silakan coba lagi nanti.' };
+    // All models failed
+    return {
+      text: '😓 **Server AI sedang sibuk**\n\nSemua model sedang overloaded. Ini normal untuk free tier.\n\n**Tips:**\n• Tunggu 30 detik lalu coba lagi\n• Coba di jam yang lebih sepi\n• Atau upgrade ke paid tier di Google AI Studio'
+    };
   }
 
   /**
    * Membuat prompt untuk AI berdasarkan pertanyaan dan data keuangan
    */
   private buildPrompt(question: string, financialData: FinancialData): string {
-    // Format data keuangan untuk dikirim ke AI (dengan batas jumlah data untuk menghindari permintaan terlalu besar)
-    const products = financialData.products.slice(0, 10); // Batasi jumlah produk
-    const transactions = financialData.transactions.slice(0, 10); // Batasi jumlah transaksi
-    const purchases = financialData.purchases.slice(0, 10); // Batasi jumlah pembelian
-    const expenses = financialData.expenses.slice(0, 10); // Batasi jumlah beban
+    const today = new Date().toLocaleDateString('id-ID', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
 
-    const formattedProducts = products.map(p =>
-      `Nama: ${p.name}, Kategori: ${p.category}, Harga: ${p.price}, Harga Pokok: ${p.cost}, Stok: ${p.stock}`
-    ).join('\n');
-
-    // Include today's date for better context
-    const today = new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
-
-    const formattedTransactions = transactions.map(t =>
-      `Tanggal: ${t.date}, Pelanggan: ${t.customer}, Jumlah: ${t.amount}, Status: ${t.status}, Tipe: ${t.type}, Item: ${t.items.map(item => `${item.productName} (${item.quantity} x ${item.price})`).join(', ')}`
-    ).join('\n');
-
-    const formattedPurchases = purchases.map(p =>
-      `Tanggal: ${p.date}, Supplier: ${p.supplier}, Jumlah: ${p.amount}, Status: ${p.status}, Item: ${p.items.map(item => `${item.productName} (${item.quantity} x ${item.cost})`).join(', ')}`
-    ).join('\n');
-
-    const formattedExpenses = expenses.map(e =>
-      `Tanggal: ${e.date}, Deskripsi: ${e.description}, Jumlah: ${e.amount}, Kategori: ${e.category}, Status: ${e.status}`
-    ).join('\n');
-
-    // Hitung ringkasan data
+    // Format financial summary
     const totalProducts = financialData.products.length;
     const totalTransactions = financialData.transactions.length;
     const totalPurchases = financialData.purchases.length;
     const totalExpenses = financialData.expenses.length;
 
     const totalRevenue = financialData.transactions
-      .filter(t => t.status === 'Lunas')
+      .filter(t => t.type === 'Penjualan')
       .reduce((sum, t) => sum + t.amount, 0);
 
-    const totalExpensesAmount = financialData.expenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalExpenseAmount = financialData.expenses.reduce((sum, e) => sum + e.amount, 0);
 
-    // Format data dalam bentuk naratif yang lebih alami
-    const dataNarrative = [];
+    // Recent data (limited for context)
+    const recentProducts = financialData.products.slice(0, 5);
+    const recentTransactions = financialData.transactions.slice(0, 5);
+    const recentExpenses = financialData.expenses.slice(0, 5);
 
-    if (totalProducts > 0) {
-      dataNarrative.push(`Saat ini Anda memiliki ${totalProducts} produk.`);
-      if (products.length > 0) {
-        dataNarrative.push(`Beberapa produk yang tersedia: ${products.slice(0, 3).map(p => p.name).join(', ')}.`);
-      }
-    } else {
-      dataNarrative.push('Saat ini belum ada data produk yang tercatat.');
-    }
+    const formatCurrency = (amount: number) => `Rp ${amount.toLocaleString('id-ID')}`;
 
-    if (totalTransactions > 0) {
-      dataNarrative.push(`Anda telah melakukan ${totalTransactions} transaksi, dengan total pemasukan sebesar ${totalRevenue}.`);
-      if (transactions.length > 0) {
-        dataNarrative.push(`Beberapa transaksi terakhir: ${transactions.slice(0, 3).map(t => `tanggal ${t.date}, pelanggan ${t.customer} sebesar Rp ${t.amount.toLocaleString()}`).join('; ')}.`);
-      }
-    } else {
-      dataNarrative.push('Belum ada transaksi penjualan yang tercatat.');
-    }
+    let productList = recentProducts.length > 0
+      ? recentProducts.map(p => `- ${p.name} (${p.category}): Harga ${formatCurrency(p.price)}, Stok: ${p.stock}`).join('\n')
+      : 'Belum ada produk';
 
-    if (totalPurchases > 0) {
-      dataNarrative.push(`Anda telah melakukan ${totalPurchases} pembelian.`);
-      if (purchases.length > 0) {
-        dataNarrative.push(`Beberapa pembelian terakhir: ${purchases.slice(0, 3).map(p => `tanggal ${p.date}, supplier ${p.supplier} sebesar Rp ${p.amount.toLocaleString()}`).join('; ')}.`);
-      }
-    } else {
-      dataNarrative.push('Belum ada pembelian yang tercatat.');
-    }
+    let transactionList = recentTransactions.length > 0
+      ? recentTransactions.map(t => `- ${t.date}: ${t.customer} - ${formatCurrency(t.amount)} (${t.status})`).join('\n')
+      : 'Belum ada transaksi';
 
-    if (totalExpenses > 0) {
-      dataNarrative.push(`Anda memiliki ${totalExpenses} beban/pengeluaran dengan total pengeluaran sebesar ${totalExpensesAmount}.`);
-      if (expenses.length > 0) {
-        dataNarrative.push(`Beberapa beban terakhir: ${expenses.slice(0, 3).map(e => `tanggal ${e.date}, ${e.description} sebesar Rp ${e.amount.toLocaleString()}`).join('; ')}.`);
-      }
-    } else {
-      dataNarrative.push('Belum ada beban/pengeluaran yang tercatat.');
-    }
+    let expenseList = recentExpenses.length > 0
+      ? recentExpenses.map(e => `- ${e.date}: ${e.description} - ${formatCurrency(e.amount)} (${e.category})`).join('\n')
+      : 'Belum ada beban';
 
-    const narrativeData = dataNarrative.join(' ');
+    return `Kamu adalah asisten AI yang cerdas dan ramah bernama "Finsera AI". Kamu membantu pengguna dengan aplikasi POS (Point of Sale) mereka, tapi kamu juga bisa menjawab pertanyaan umum.
 
-    // Deteksi jenis pertanyaan untuk menyesuaikan respons
-    const questionLower = question.toLowerCase();
-    const isProductRelated = questionLower.includes('produk') || questionLower.includes('barang') ||
-                            questionLower.includes('fashion') || questionLower.includes('pakaian') ||
-                            questionLower.includes('menambahkan') || questionLower.includes('buatkan') ||
-                            questionLower.includes('harga jual') || questionLower.includes('harga pokok') ||
-                            questionLower.includes('kategori');
+TANGGAL HARI INI: ${today}
 
-    const isDateRelated = questionLower.includes('hari ini') || questionLower.includes('tanggal') ||
-                         questionLower.includes('minggu ini') || questionLower.includes('bulan ini') ||
-                         questionLower.includes('terakhir');
+=== DATA BISNIS PENGGUNA ===
 
-    let additionalInstruction = '';
-    if (isProductRelated) {
-      additionalInstruction = 'Khusus untuk pertanyaan tentang penambahan produk baru, berikan saran yang spesifik tentang nama produk, kategori, harga jual, dan harga pokok dalam format yang terstruktur.';
-    } else if (isDateRelated) {
-      additionalInstruction = 'Jika pertanyaan berhubungan dengan tanggal atau waktu tertentu, fokuslah pada data yang sesuai dengan periode waktu yang dimaksud. Gunakan informasi transaksi, pembelian, atau beban yang relevan dengan tanggal tersebut.';
-    }
+📦 PRODUK (${totalProducts} total):
+${productList}
 
-    return `
-      Kamu adalah asisten keuangan dan teknologi untuk aplikasi akuntansi. Gunakan data lokal berikut sebagai dasar jawabanmu jika relevan, namun tetap gunakan pengetahuan luasmu untuk menjawab pertanyaan-pertanyaan dari pengguna, bahkan jika tidak secara langsung berhubungan dengan data keuangan.
+💰 TRANSAKSI PENJUALAN (${totalTransactions} total, Total: ${formatCurrency(totalRevenue)}):
+${transactionList}
 
-      Ringkasan data lokal: ${narrativeData}
+📝 BEBAN/PENGELUARAN (${totalExpenses} total, Total: ${formatCurrency(totalExpenseAmount)}):
+${expenseList}
 
-      Detail Produk (${products.length} dari ${totalProducts}):
-      ${formattedProducts || 'Tidak ada data produk lokal'}
+=== ATURAN PENTING ===
 
-      Detail Transaksi (${transactions.length} dari ${totalTransactions}):
-      ${formattedTransactions || 'Tidak ada data transaksi lokal'}
+1. JAWAB SEMUA PERTANYAAN - baik tentang data bisnis, pertanyaan umum, coding, teknologi, atau apapun yang ditanyakan pengguna.
 
-      Detail Pembelian (${purchases.length} dari ${totalPurchases}):
-      ${formattedPurchases || 'Tidak ada data pembelian lokal'}
+2. Jika pertanyaan TERKAIT data bisnis (produk, transaksi, keuangan):
+   - Gunakan data di atas untuk menjawab
+   - Jika data kosong, katakan bahwa belum ada data dan ajarkan cara menambahkannya
 
-      Detail Beban (${expenses.length} dari ${totalExpenses}):
-      ${formattedExpenses || 'Tidak ada data beban lokal'}
+3. Jika pertanyaan TIDAK TERKAIT data bisnis (pertanyaan umum, coding, tips, dll):
+   - Jawab dengan pengetahuan umummu
+   - Tetap ramah dan informatif
 
-      Pertanyaan Pengguna: ${question}
+4. Gunakan BAHASA INDONESIA yang santun dan mudah dipahami
 
-      ${additionalInstruction}
+5. Format jawaban dengan baik menggunakan:
+   - Poin-poin untuk daftar
+   - Emoji yang sesuai
+   - Paragraf pendek yang mudah dibaca
 
-      Jawablah dengan jujur, informatif, dan bermanfaat. Jika kamu tidak tahu jawaban dari data lokal, kamu boleh menggunakan pengetahuan umummu. Jawab semua jenis pertanyaan dengan ramah, tidak peduli seberapa sederhana atau kompleksnya. Gunakan bahasa Indonesia yang santun. Format jawaban sesuaikan dengan jenis pertanyaan - narasi, poin-poin, atau daftar tergantung konteks. Jika pengguna menanyakan sesuatu di luar lingkup data keuangan, kamu tetap boleh menjawab dengan pengetahuan umummu.
-    `;
+=== PERTANYAAN PENGGUNA ===
+${question}
+
+Jawab dengan lengkap dan bermanfaat:`;
   }
 
   /**
@@ -268,24 +235,17 @@ class AIService {
    */
   async processQuestion(question: string, financialData: FinancialData): Promise<string> {
     try {
+      // Validate question
+      if (!question || question.trim().length < 2) {
+        return 'Silakan ketik pertanyaan yang ingin Anda tanyakan.';
+      }
+
       const prompt = this.buildPrompt(question, financialData);
-      console.log('Prompt yang dikirim:', prompt); // Log untuk debugging
-
-      // Tambahkan delay kecil sebelum mengirim permintaan untuk menghindari permintaan terlalu cepat
-      await new Promise(resolve => setTimeout(resolve, 500));
-
       const response = await this.callAI(prompt);
       return response.text;
     } catch (error) {
-      console.error('Error processing question:', error);
-      if (error instanceof Error) {
-        // Jika error adalah "The model is overloaded", berikan pesan yang lebih ramah
-        if (error.message.includes('The model is overloaded')) {
-          return 'Maaf, saat ini asisten AI sedang sibuk. Silakan coba beberapa saat lagi. Anda tetap dapat menggunakan fitur lain dari aplikasi.';
-        }
-        return 'Maaf, terjadi kesalahan saat memproses permintaan. Silakan coba lagi nanti.';
-      }
-      return 'Maaf, terjadi kesalahan saat memproses permintaan. Silakan coba lagi nanti.';
+      console.error('[AI] Error processing question:', error);
+      return 'Maaf, terjadi kesalahan saat memproses pertanyaan. Silakan coba lagi.';
     }
   }
 }
