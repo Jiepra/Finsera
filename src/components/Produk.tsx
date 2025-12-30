@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Package, Plus, Edit, Trash2, Search } from 'lucide-react';
+import { Package, Plus, Edit, Trash2, Search, Upload } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useApp, Product } from '@/contexts/AppContext';
 import AddProductModal from './AddProductModal';
 import EditProductModal from './EditProductModal';
+import ImportProductModal from './ImportProductModal';
 import { toast } from '@/components/ui/sonner';
 
 const Produk: React.FC = () => {
@@ -14,6 +15,7 @@ const Produk: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const filteredProducts = products.filter(product =>
@@ -39,7 +41,7 @@ const Produk: React.FC = () => {
 
   return (
     <div className="p-6 bg-gray-50 dark:bg-gray-950 min-h-screen transition-colors duration-300">
-      <div className="mb-6 flex justify-between items-center">
+      <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
             <Package className="mr-3 h-8 w-8" />
@@ -47,13 +49,23 @@ const Produk: React.FC = () => {
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">Kelola inventori dan produk Anda</p>
         </div>
-        <Button
-          className="bg-blue-600 hover:bg-blue-700"
-          onClick={() => setShowAddModal(true)}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Tambah Produk
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="dark:border-gray-700 dark:hover:bg-gray-800"
+            onClick={() => setShowImportModal(true)}
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            Import Excel
+          </Button>
+          <Button
+            className="bg-blue-600 hover:bg-blue-700"
+            onClick={() => setShowAddModal(true)}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Tambah Produk
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -93,11 +105,17 @@ const Produk: React.FC = () => {
         <Card className="dark:bg-gray-900 dark:border-gray-800"><CardContent className="p-12 text-center">
           <Package className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">Belum Ada Produk</h3>
-          <p className="text-gray-500 dark:text-gray-500 mb-6">Mulai dengan menambahkan produk pertama Anda</p>
-          <Button onClick={() => setShowAddModal(true)} className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="mr-2 h-4 w-4" />
-            Tambah Produk Pertama
-          </Button>
+          <p className="text-gray-500 dark:text-gray-500 mb-6">Mulai dengan menambahkan produk pertama Anda atau import dari Excel</p>
+          <div className="flex justify-center gap-3">
+            <Button variant="outline" onClick={() => setShowImportModal(true)} className="dark:border-gray-700">
+              <Upload className="mr-2 h-4 w-4" />
+              Import Excel
+            </Button>
+            <Button onClick={() => setShowAddModal(true)} className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="mr-2 h-4 w-4" />
+              Tambah Produk
+            </Button>
+          </div>
         </CardContent></Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -185,6 +203,7 @@ const Produk: React.FC = () => {
 
       <AddProductModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} />
       <EditProductModal isOpen={showEditModal} onClose={() => setShowEditModal(false)} product={selectedProduct} />
+      <ImportProductModal isOpen={showImportModal} onClose={() => setShowImportModal(false)} />
     </div>
   );
 };

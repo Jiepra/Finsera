@@ -172,9 +172,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       user_id: userId,
       created_at: new Date().toISOString()
     };
-    const updated = [newProduct, ...products];
-    setProducts(updated);
-    saveLocal("products", updated, userId);
+
+    // Use functional update to ensure we always have the latest state
+    setProducts(prevProducts => {
+      const updated = [newProduct, ...prevProducts];
+      saveLocal("products", updated, userId);
+      return updated;
+    });
+
     console.log("Produk baru ditambahkan:", newProduct);
     return newProductId;
   };
@@ -208,7 +213,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const updateMultipleProductStocks = (items: { id: string; quantity: number; type?: 'sale' | 'purchase' }[]) => {
     if (!userId) { console.error("Pengguna belum diautentikasi."); return; }
-    
+
     const updatedList = products.map(product => {
       const item = items.find(i => i.id === product.id);
       if (item) {
@@ -220,7 +225,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
       return product;
     });
-    
+
     setProducts(updatedList);
     saveLocal("products", updatedList, userId);
     console.log(`Stok ${items.length} produk diperbarui sekaligus`);
@@ -349,7 +354,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     // For liabilities and equity, we'll use simpler metrics since we're not using journal entries
     const totalKewajiban = expenses.filter(e => e.status !== 'Lunas').reduce((sum, e) => sum + e.amount, 0) +
-                          purchases.filter(p => p.status !== 'Lunas').reduce((sum, p) => sum + p.amount, 0);
+      purchases.filter(p => p.status !== 'Lunas').reduce((sum, p) => sum + p.amount, 0);
 
     const totalEkuitas = totalPendapatan - totalExpenses - totalPurchases + totalKewajiban; // Simplified calculation
 
@@ -465,7 +470,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     // For liabilities and equity, use simplified metrics
     const totalKewajiban = filteredExpenses.filter(e => e.status !== 'Lunas').reduce((sum, e) => sum + e.amount, 0) +
-                          filteredPurchases.filter(p => p.status !== 'Lunas').reduce((sum, p) => sum + p.amount, 0);
+      filteredPurchases.filter(p => p.status !== 'Lunas').reduce((sum, p) => sum + p.amount, 0);
 
     const totalEkuitas = totalPendapatan - totalExpenses - totalPurchases + totalKewajiban; // Simplified calculation
 
@@ -538,14 +543,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!userId) {
       return "Anda harus login terlebih dahulu untuk menggunakan fitur AI.";
     }
-    
+
     const financialData: FinancialData = {
       products,
       transactions,
       purchases,
       expenses
     };
-    
+
     return await aiService.processQuestion(question, financialData);
   };
 
