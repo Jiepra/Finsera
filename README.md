@@ -192,8 +192,7 @@ Proyek ini dikembangkan untuk keperluan akademik.
 
 ## 👨‍💻 Tim Pengembang
 
-**Kelompok 3** - Tugas Akhir Interaksi Manusia dan Komputer
-
+**Kelompok 3** - Tugas Akhir Interaksi Manusia dan Komputer & Pemrograman Berbasis Web
 ---
 
 <div align="center">
