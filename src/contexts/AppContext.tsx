@@ -109,6 +109,7 @@ interface AppContextType {
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
   deleteTransaction: (id: string) => void;
   addPurchase: (purchase: Omit<Purchase, 'id'>) => void;
+  updatePurchase: (id: string, purchase: Partial<Purchase>) => void;
   deletePurchase: (id: string) => void;
   addExpense: (expense: Omit<Expense, 'id'>) => void;
   updateExpense: (id: string, expense: Partial<Expense>) => void;
@@ -270,6 +271,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       quantity: item.quantity,
       type: 'purchase'
     })));
+  };
+
+  const updatePurchase = (id: string, updatedPurchase: Partial<Purchase>) => {
+    if (!userId) { console.error("Pengguna belum diautentikasi."); return; }
+    const updatedList = purchases.map(p => p.id === id ? { ...p, ...updatedPurchase } : p);
+    setPurchases(updatedList);
+    saveLocal("purchases", updatedList, userId);
+    console.log(`Pembelian ${id} diperbarui:`, updatedPurchase);
   };
 
   const deletePurchase = (id: string) => {
@@ -569,6 +578,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     addTransaction,
     deleteTransaction,
     addPurchase,
+    updatePurchase,
     deletePurchase,
     addExpense,
     updateExpense,
